@@ -3,17 +3,8 @@
 #include "LargeReplicatedObject.generated.h"
 
 
-USTRUCT()
-struct LARGEOBJECTREPLICATION_API FReplicatedBlobChunkData {
-    GENERATED_BODY()
-
-    UPROPERTY()
-    TArray<uint8> Data;
-};
-
-
 UCLASS(Blueprintable)
-class LARGEOBJECTREPLICATION_API ALargeReplicatedObject : public AInfo {
+class LARGEOBJECTREPLICATION_API ULargeReplicatedObject : public UObject {
     GENERATED_BODY()
 
     UPROPERTY(Replicated)
@@ -23,10 +14,12 @@ class LARGEOBJECTREPLICATION_API ALargeReplicatedObject : public AInfo {
     int32 Size = 0;
     
     UPROPERTY(Replicated)
-    TArray<FReplicatedBlobChunkData> Chunks = {};
+    TArray<class UReplicatedChunkData*> Chunks = {};
 
 public:
-    ALargeReplicatedObject();
+    virtual bool IsSupportedForNetworking() const override {
+        return true;
+    }
 
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

@@ -1,26 +1,23 @@
 ﻿#include "LargeReplicatedObject.h"
+
+#include "ChunkData.h"
 #include "Net/UnrealNetwork.h"
 
 
-ALargeReplicatedObject::ALargeReplicatedObject() {
-    bReplicates = true;
-}
-
-
-void ALargeReplicatedObject::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+void ULargeReplicatedObject::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-    DOREPLIFETIME(ALargeReplicatedObject, Chunks);
-    DOREPLIFETIME(ALargeReplicatedObject, ChunkSize);
-    DOREPLIFETIME(ALargeReplicatedObject, Size);
+    DOREPLIFETIME(ULargeReplicatedObject, Chunks);
+    DOREPLIFETIME(ULargeReplicatedObject, ChunkSize);
+    DOREPLIFETIME(ULargeReplicatedObject, Size);
 }
 
 
-void ALargeReplicatedObject::SetBytes(const TArray<uint8>& Bytes) {
+void ULargeReplicatedObject::SetBytes(const TArray<uint8>& Bytes) {
     SetBytes(Bytes.GetData(), Bytes.Num() * sizeof(uint8));
 }
 
-void ALargeReplicatedObject::SetBytes(const void* Ptr, uint64 Count) {
+void ULargeReplicatedObject::SetBytes(const void* Ptr, uint64 Count) {
     checkf(ChunkSize < 64 * 1024, TEXT("ChunkSize must be smaller that 64kB, is %d"), ChunkSize)
     
     Size = Count;
@@ -30,8 +27,8 @@ void ALargeReplicatedObject::SetBytes(const void* Ptr, uint64 Count) {
     while (Count > 0) {
         const int32 BytesInChunk = FPlatformMath::Min(Count, static_cast<uint64>(ChunkSize));
 
-        FReplicatedBlobChunkData Chunk{};
-        Chunk.Data = TArray{Src, BytesInChunk};
+        UReplicatedChunkData* Chunk = NewObject<UReplicatedChunkData>(this);
+        Chunk->Data = TArray{Src, BytesInChunk};
         Chunks.Push(Chunk);
 
         Src += BytesInChunk;
@@ -40,11 +37,11 @@ void ALargeReplicatedObject::SetBytes(const void* Ptr, uint64 Count) {
 }
 
 
-void ALargeReplicatedObject::AppendBytes(const TArray<uint8>& Bytes) {
+void ULargeReplicatedObject::AppendBytes(const TArray<uint8>& Bytes) {
     AppendBytes(Bytes.GetData(), Bytes.Num() * sizeof(uint8));
 }
 
-void ALargeReplicatedObject::AppendBytes(const void* Ptr, uint64 Count) {
+void ULargeReplicatedObject::AppendBytes(const void* Ptr, uint64 Count) {
     checkf(ChunkSize < 64 * 1024, TEXT("ChunkSize must be smaller that 64kB, is %d"), ChunkSize)
     
     Size += Count;
@@ -53,8 +50,8 @@ void ALargeReplicatedObject::AppendBytes(const void* Ptr, uint64 Count) {
     const uint8* Src = static_cast<const uint8*>(Ptr);
     
     // First, try to finish the last chunk
-    const int32 RemainingBytes = FPlatformMath::Min(Count, static_cast<uint64>(ChunkSize - Chunks.Last().Data.Num()));
-    Chunks.Last().Data.Append(Src, RemainingBytes);
+    const int32 RemainingBytes = FPlatformMath::Min(Count, static_cast<uint64>(ChunkSize - Chunks.Last()->Data.Num()));
+    Chunks.Last()->Data.Append(Src, RemainingBytes);
     Src += RemainingBytes;
     Count -= RemainingBytes;
 
@@ -62,20 +59,20 @@ void ALargeReplicatedObject::AppendBytes(const void* Ptr, uint64 Count) {
     while (Count > 0) {
         const int32 BytesInChunk = FPlatformMath::Min(Count, static_cast<uint64>(ChunkSize));
 
-        FReplicatedBlobChunkData Chunk{};
-        Chunk.Data = TArray{Src, BytesInChunk};
+        UReplicatedChunkData* Chunk = NewObject<UReplicatedChunkData>(this);
+        Chunk->Data = TArray{Src, BytesInChunk};
         Chunks.Push(Chunk);
 
         Src += BytesInChunk;
         Count -= BytesInChunk;
     }
 }
-TArray<uint8> ALargeReplicatedObject::GetBytes() const {
+TArray<uint8> ULargeReplicatedObject::GetBytes() const {
     TArray<uint8> Bytes;
     Bytes.Reserve(Size);
 
-    for (const auto& [Data] : Chunks) {
-        Bytes.Append(Data);
+    for (const auto* Chunk : Chunks) {
+        Bytes.Append(Chunk->Data);
     }
 
     return Bytes;
