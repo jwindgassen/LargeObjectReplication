@@ -7,7 +7,7 @@ public class LargeObjectReplication : ModuleRules {
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_3;
 
-		PublicDependencyModuleNames.AddRange(new[] { "Core" });
+		PublicDependencyModuleNames.AddRange(new[] { "Core", "NetCore" });
 		PrivateDependencyModuleNames.AddRange(new[]{ "CoreUObject", "Engine" });
 	}
 }
